@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Executive Journal & Vocab</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b0712" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <h1>Executive Journal</h1>
+      <button id="sync-btn" class="icon-btn" title="新着ファイル同期">⟳</button>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-view="journal-view">日記</button>
+      <button class="tab-btn" data-view="vocab-todo-view">英単語（未完了）</button>
+      <button class="tab-btn" data-view="vocab-done-view">英単語済（完了）</button>
+    </div>
+
+    <!-- 日記一覧 -->
+    <section id="journal-view" class="view active">
+      <div id="journal-list"></div>
+    </section>
+
+    <!-- 英単語（未完了） -->
+    <section id="vocab-todo-view" class="view">
+      <div id="vocab-todo-list"></div>
+    </section>
+
+    <!-- 英単語済（完了） -->
+    <section id="vocab-done-view" class="view">
+      <div id="vocab-done-list"></div>
+    </section>
+
+    <button id="add-journal-fab" class="fab" title="新規日記を追加">+</button>
+  </div>
+
+  <!-- 同期確認モーダル -->
+  <div id="sync-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>新着ファイル同期</h2>
+      <p id="sync-modal-message">確認中...</p>
+      <div class="modal-actions">
+        <button id="sync-cancel-btn" class="btn btn-ghost">閉じる</button>
+        <button id="sync-run-btn" class="btn btn-primary">同期を実行</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 汎用確認モーダル（削除確認など） -->
+  <div id="confirm-modal" class="modal-overlay">
+    <div class="modal">
+      <h2 id="confirm-modal-title">確認</h2>
+      <p id="confirm-modal-message"></p>
+      <div class="modal-actions">
+        <button id="confirm-cancel-btn" class="btn btn-ghost">キャンセル</button>
+        <button id="confirm-ok-btn" class="btn btn-danger">削除する</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

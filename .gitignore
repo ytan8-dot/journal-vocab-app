@@ -1,0 +1,12 @@
+# ローカルのGAS作業用クローン（Script IDを含むため公開しない）
+gas-clasp/
+
+# 個人的な作業メモ（アプリ本体と無関係）
+ClaudeCode_コマンド一覧.md
+
+
+# 空フォルダ・OS/エディタ生成物
+0_Journal/
+node_modules/
+.DS_Store
+Thumbs.db
