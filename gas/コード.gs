@@ -71,6 +71,9 @@ function doPost(e) {
       case 'updateVocabEntry':
         result = updateVocabEntry(payload.rowIndex, payload.japanese, payload.english);
         break;
+      case 'addVocabEntry':
+        result = addVocabEntry(payload.japanese, payload.english);
+        break;
       case 'deleteVocabEntry':
         result = deleteVocabEntry(payload.rowIndex);
         break;
@@ -309,6 +312,17 @@ function updateVocabEntry(rowIndex, japanese, english) {
     return { success: true, message: '単語情報を更新しました。' };
   } catch (e) {
     return { success: false, message: '更新エラー: ' + e.toString() };
+  }
+}
+
+function addVocabEntry(japanese, english) {
+  try {
+    const sheet = getVocabSheet();
+    if (sheet.getLastRow() === 0) sheet.appendRow(['日本語', '英語', 'ステータス']);
+    sheet.appendRow([japanese, english, '未完了']);
+    return { success: true, message: '単語を追加しました。', rowIndex: sheet.getLastRow() };
+  } catch (e) {
+    return { success: false, message: '追加エラー: ' + e.toString() };
   }
 }
 

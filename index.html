@@ -22,26 +22,26 @@
 
     <div class="tabs">
       <button class="tab-btn active" data-view="journal-view">日記</button>
-      <button class="tab-btn" data-view="vocab-todo-view">英単語（未完了）</button>
-      <button class="tab-btn" data-view="vocab-done-view">英単語済（完了）</button>
+      <button class="tab-btn" data-view="vocab-todo-view">英単語<br />（未完了）</button>
+      <button class="tab-btn" data-view="vocab-done-view">英単語<br />（完了）</button>
     </div>
 
     <!-- 日記一覧 -->
     <section id="journal-view" class="view active">
       <div id="journal-list"></div>
+      <button id="add-journal-fab" class="fab" title="新規日記を追加">+</button>
     </section>
 
     <!-- 英単語（未完了） -->
     <section id="vocab-todo-view" class="view">
       <div id="vocab-todo-list"></div>
+      <button id="add-vocab-fab" class="fab" title="単語を追加">+</button>
     </section>
 
     <!-- 英単語済（完了） -->
     <section id="vocab-done-view" class="view">
       <div id="vocab-done-list"></div>
     </section>
-
-    <button id="add-journal-fab" class="fab" title="新規日記を追加">+</button>
   </div>
 
   <!-- 同期確認モーダル -->
@@ -63,7 +63,7 @@
       <p id="confirm-modal-message"></p>
       <div class="modal-actions">
         <button id="confirm-cancel-btn" class="btn btn-ghost">キャンセル</button>
-        <button id="confirm-ok-btn" class="btn btn-danger">削除する</button>
+        <button id="confirm-ok-btn" class="btn btn-danger">OK</button>
       </div>
     </div>
   </div>

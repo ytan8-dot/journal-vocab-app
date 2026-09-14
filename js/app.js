@@ -87,9 +87,14 @@ function renderJournals() {
       </div>
     `;
 
+    const bodyTextarea = card.querySelector('.edit-body');
+
     card.querySelector('.card-header').addEventListener('click', () => {
       card.classList.toggle('expanded');
+      if (card.classList.contains('expanded')) autoGrowTextarea(bodyTextarea);
     });
+
+    bodyTextarea.addEventListener('input', () => autoGrowTextarea(bodyTextarea));
 
     card.querySelector('.save-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -141,14 +146,17 @@ async function persistJournals(successMessage) {
 }
 
 document.getElementById('add-journal-fab').addEventListener('click', () => {
-  const today = new Date().toISOString().slice(0, 10);
-  journals.unshift({ date: today, title: '', body: '', id: -1 });
-  renderJournals();
-  const firstCard = journalListEl.querySelector('.card');
-  if (firstCard) {
-    firstCard.classList.add('expanded');
-    firstCard.querySelector('.edit-title').focus();
-  }
+  showConfirm('日記の追加', '新しい日記を追加しますか？', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    journals.unshift({ date: today, title: '', body: '', id: -1 });
+    renderJournals();
+    const firstCard = journalListEl.querySelector('.card');
+    if (firstCard) {
+      firstCard.classList.add('expanded');
+      firstCard.querySelector('.edit-title').focus();
+      autoGrowTextarea(firstCard.querySelector('.edit-body'));
+    }
+  });
 });
 
 /* ---------------- Vocab ---------------- */
@@ -256,6 +264,59 @@ function buildVocabItem(v) {
   return card;
 }
 
+document.getElementById('add-vocab-fab').addEventListener('click', () => {
+  showConfirm('単語の追加', '新しい単語を追加しますか？', () => {
+    addNewVocabCard();
+  });
+});
+
+function addNewVocabCard() {
+  const emptyState = vocabTodoListEl.querySelector('.empty-state');
+  if (emptyState) emptyState.remove();
+
+  const card = document.createElement('div');
+  card.className = 'card vocab-card expanded';
+  card.innerHTML = `
+    <div class="card-header">
+      <input type="checkbox" disabled />
+      <input type="text" class="edit-japanese" placeholder="日本語" />
+    </div>
+    <div class="card-body">
+      <input type="text" class="edit-english" placeholder="English" />
+      <div class="card-actions">
+        <button class="btn btn-ghost cancel-btn">キャンセル</button>
+        <button class="btn btn-primary save-new-btn">追加</button>
+      </div>
+    </div>
+  `;
+
+  vocabTodoListEl.prepend(card);
+  card.querySelector('.edit-japanese').focus();
+
+  card.querySelector('.cancel-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    card.remove();
+    if (!vocabTodoListEl.querySelector('.card')) renderVocab();
+  });
+
+  card.querySelector('.save-new-btn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const japanese = card.querySelector('.edit-japanese').value.trim();
+    const english = card.querySelector('.edit-english').value.trim();
+    if (!japanese && !english) {
+      toast('日本語または英語を入力してください', true);
+      return;
+    }
+    try {
+      await Api.addVocabEntry(japanese, english);
+      toast('単語を追加しました');
+      await loadVocab();
+    } catch (err) {
+      toast('追加に失敗しました: ' + err.message, true);
+    }
+  });
+}
+
 /* ---------------- Sync modal ---------------- */
 const syncModal = document.getElementById('sync-modal');
 const syncModalMessage = document.getElementById('sync-modal-message');
@@ -303,6 +364,11 @@ function escapeHtml(str) {
 }
 function escapeAttr(str) {
   return escapeHtml(str).replace(/"/g, '&quot;');
+}
+function autoGrowTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
 }
 
 /* ---------------- Init ---------------- */

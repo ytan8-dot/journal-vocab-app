@@ -57,6 +57,7 @@ const Api = {
   getVocabList: () => apiGet('getVocabList'),
   updateVocabStatus: (rowIndex, newStatus) => apiPost('updateVocabStatus', { rowIndex, newStatus }),
   updateVocabEntry: (rowIndex, japanese, english) => apiPost('updateVocabEntry', { rowIndex, japanese, english }),
+  addVocabEntry: (japanese, english) => apiPost('addVocabEntry', { japanese, english }),
   deleteVocabEntry: (rowIndex) => apiPost('deleteVocabEntry', { rowIndex }),
   checkUnprocessedFiles: () => apiGet('checkUnprocessedFiles'),
   performSync: () => apiPost('performSync', {})

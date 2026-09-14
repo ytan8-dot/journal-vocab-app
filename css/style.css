@@ -74,13 +74,14 @@ header.app-header h1 {
 
 .tab-btn {
   flex: 1;
-  padding: 12px;
+  padding: 10px 8px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--bg-panel);
   color: var(--text-sub);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  line-height: 1.4;
   cursor: pointer;
 }
 
@@ -158,7 +159,8 @@ header.app-header h1 {
 
 .card-body textarea {
   min-height: 140px;
-  resize: vertical;
+  overflow: hidden;
+  resize: none;
 }
 
 .card-actions {
@@ -187,6 +189,17 @@ header.app-header h1 {
 .vocab-card .card-title.is-done {
   color: var(--text-sub);
   text-decoration: line-through;
+}
+
+.vocab-card .card-header input[type="text"] {
+  flex: 1;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-main);
+  padding: 8px 10px;
+  font-size: 1rem;
+  font-family: inherit;
 }
 
 /* ---------- Buttons ---------- */
