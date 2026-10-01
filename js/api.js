@@ -13,6 +13,16 @@ const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw9Q4prTRWJnIR1
 const API_TOKEN_STORAGE_KEY = 'journalAppApiToken';
 
 function getApiToken() {
+  // URLに ?token=xxx が付与されていれば、それを優先して保存する。
+  // iOSのホーム画面追加アプリ等でlocalStorageが消えてもプロンプトなしで復帰できるようにするため。
+  const urlToken = new URLSearchParams(location.search).get('token');
+  if (urlToken) {
+    localStorage.setItem(API_TOKEN_STORAGE_KEY, urlToken.trim());
+    const url = new URL(location.href);
+    url.searchParams.delete('token');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }
+
   let token = localStorage.getItem(API_TOKEN_STORAGE_KEY);
   if (!token) {
     token = window.prompt('APIトークンを入力してください（GAS側に設定した値）');
