@@ -1,14 +1,14 @@
 :root {
-  --bg-base: #0b0712;
-  --bg-panel: #160f24;
-  --bg-card: #1d1430;
-  --accent: #a855f7;
-  --accent-soft: rgba(168, 85, 247, 0.15);
-  --text-main: #f2eefb;
-  --text-sub: #9c93b5;
-  --border: #2a2140;
-  --success: #34d399;
-  --danger: #f87171;
+  --bg-base: #f6f2ff;
+  --bg-panel: #ffffff;
+  --bg-card: #ffffff;
+  --accent: #7c3aed;
+  --accent-soft: rgba(124, 58, 237, 0.12);
+  --text-main: #2a1f44;
+  --text-sub: #6e6390;
+  --border: #e2d8f5;
+  --success: #059669;
+  --danger: #dc2626;
 }
 
 * {
@@ -243,7 +243,7 @@ header.app-header h1 {
   align-items: center;
   justify-content: center;
   border: none;
-  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);
   cursor: pointer;
   z-index: 20;
 }
