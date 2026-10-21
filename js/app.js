@@ -2,13 +2,14 @@ let journals = [];
 let vocabList = [];
 let dragFromIndex = null;
 
-// 最新データを取得できたか。false のときは前回取得した内容（キャッシュ）を表示中で、閲覧のみ。
-let journalsFresh = false;
-let vocabFresh = false;
-let journalsCachedAt = null;
-let vocabCachedAt = null;
+// 日記はこの端末（localStorage）を本体とし、「書き出し」時のみマスタードキュメントへ書き込む。
+// journalsDirty: 書き出していない変更があるか
+let journalsDirty = false;
+const JOURNAL_LOCAL_KEY = 'journalAppLocal.journals';
 
-const CACHE_KEY_JOURNALS = 'journalAppCache.journals';
+// 単語帳: 最新データを取得できたか。false のときは前回取得した内容（キャッシュ）を表示中で、閲覧のみ。
+let vocabFresh = false;
+let vocabCachedAt = null;
 const CACHE_KEY_VOCAB = 'journalAppCache.vocab';
 
 const journalListEl = document.getElementById('journal-list');
@@ -70,12 +71,11 @@ function formatDateTime(ms) {
 function updateStaleBanner() {
   const banner = document.getElementById('stale-banner');
   const notes = [];
-  if (!journalsFresh && journalsCachedAt) notes.push(`日記: ${formatDateTime(journalsCachedAt)}`);
-  if (!vocabFresh && vocabCachedAt) notes.push(`英単語: ${formatDateTime(vocabCachedAt)}`);
-  banner.textContent = notes.length
-    ? `前回取得した内容を表示中（閲覧のみ）／${notes.join('・')}`
+  const stale = !vocabFresh && vocabCachedAt;
+  banner.textContent = stale
+    ? `英単語は前回取得した内容を表示中（閲覧のみ）／${formatDateTime(vocabCachedAt)}`
     : '';
-  banner.classList.toggle('active', notes.length > 0);
+  banner.classList.toggle('active', !!stale);
 }
 
 // 古い内容を表示している間は、保存・削除などの書き込みを止める。
@@ -97,25 +97,71 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
 });
 
 /* ---------------- Journal ---------------- */
-async function loadJournals() {
+function saveLocalJournals() {
   try {
-    journals = await Api.getJournals();
-    journalsFresh = true;
-    saveCache(CACHE_KEY_JOURNALS, journals);
-    renderJournals();
+    localStorage.setItem(JOURNAL_LOCAL_KEY, JSON.stringify({ journals, dirty: journalsDirty }));
   } catch (e) {
-    const cached = loadCache(CACHE_KEY_JOURNALS);
-    if (cached) {
-      journals = cached.data;
-      journalsCachedAt = cached.savedAt;
-      journalsFresh = false;
+    toast('端末への保存に失敗しました。早めに書き出してください', true);
+  }
+}
+
+function loadLocalJournals() {
+  try {
+    const raw = localStorage.getItem(JOURNAL_LOCAL_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function updateExportIndicator() {
+  document.getElementById('export-journal-btn').classList.toggle('dirty', journalsDirty);
+  document.getElementById('journal-dirty-note').textContent = journalsDirty
+    ? '書き出していない変更があります'
+    : '';
+}
+
+// 日記を編集したら端末に保存し、未書き出しにする
+function commitJournalChange(successMessage) {
+  journalsDirty = true;
+  saveLocalJournals();
+  updateExportIndicator();
+  renderJournals();
+  if (successMessage) toast(successMessage);
+}
+
+// マスタードキュメントから読み込む。
+// GAS側の getJournals はエラー時に空配列を返すため、端末に日記がある状態で空が返ったら置き換えない。
+async function fetchJournalsFromMaster() {
+  const fetched = await Api.getJournals();
+  if (fetched.length === 0 && journals.length > 0) {
+    throw new Error('マスターが空で返されたため、読み込みを中止しました');
+  }
+  journals = fetched;
+  journalsDirty = false;
+  saveLocalJournals();
+  updateExportIndicator();
+  renderJournals();
+}
+
+async function initJournals() {
+  const local = loadLocalJournals();
+  if (local) {
+    journals = local.journals || [];
+    journalsDirty = !!local.dirty;
+    renderJournals();
+    updateExportIndicator();
+  }
+  // 書き出していない変更があるときは、マスターで上書きしない
+  if (journalsDirty) return;
+  try {
+    await fetchJournalsFromMaster();
+  } catch (e) {
+    if (!local) {
       renderJournals();
-      toast('日記の取得に失敗したため、前回の内容を表示します', true);
-    } else {
       toast('日記の取得に失敗しました: ' + e.message, true);
     }
   }
-  updateStaleBanner();
 }
 
 function renderJournals() {
@@ -156,22 +202,20 @@ function renderJournals() {
 
     bodyTextarea.addEventListener('input', () => autoGrowTextarea(bodyTextarea));
 
-    card.querySelector('.save-btn').addEventListener('click', async (e) => {
+    card.querySelector('.save-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!canWrite(journalsFresh)) return;
       const date = card.querySelector('.edit-date').value.trim() || '日付なし';
       const title = card.querySelector('.edit-title').value.trim() || 'タイトルなし';
       const body = card.querySelector('.edit-body').value;
       journals[index] = { ...journals[index], date, title, body };
-      await persistJournals('保存しました');
+      commitJournalChange('端末に保存しました（未書き出し）');
     });
 
     card.querySelector('.delete-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!canWrite(journalsFresh)) return;
-      showConfirm('日記の削除', `「${j.title}」を削除しますか？`, async () => {
+      showConfirm('日記の削除', `「${j.title}」を削除しますか？`, () => {
         journals.splice(index, 1);
-        await persistJournals('削除しました');
+        commitJournalChange('削除しました（未書き出し）');
       });
     });
 
@@ -184,32 +228,48 @@ function renderJournals() {
       card.classList.remove('dragging');
     });
     card.addEventListener('dragover', (e) => e.preventDefault());
-    card.addEventListener('drop', async (e) => {
+    card.addEventListener('drop', (e) => {
       e.preventDefault();
       const toIndex = index;
       if (dragFromIndex === null || dragFromIndex === toIndex) return;
-      if (!canWrite(journalsFresh)) return;
       const [moved] = journals.splice(dragFromIndex, 1);
       journals.splice(toIndex, 0, moved);
-      await persistJournals();
+      commitJournalChange();
     });
 
     journalListEl.appendChild(card);
   });
 }
 
-async function persistJournals(successMessage) {
-  try {
-    await Api.saveJournals(journals);
-    if (successMessage) toast(successMessage);
-    await loadJournals();
-  } catch (e) {
-    toast('保存に失敗しました: ' + e.message, true);
-  }
-}
+document.getElementById('export-journal-btn').addEventListener('click', () => {
+  showConfirm('マスターへ書き出し', `今の日記 ${journals.length} 件で、マスタードキュメントの中身を全部書き換えます。よろしいですか？`, async () => {
+    try {
+      await Api.saveJournals(journals);
+      journalsDirty = false;
+      saveLocalJournals();
+      updateExportIndicator();
+      toast('マスターへ書き出しました');
+    } catch (e) {
+      toast('書き出しに失敗しました: ' + e.message, true);
+    }
+  });
+});
+
+document.getElementById('reload-journal-btn').addEventListener('click', () => {
+  const message = journalsDirty
+    ? '書き出していない変更は消えます。マスタードキュメントから読み直しますか？'
+    : 'マスタードキュメントから読み直しますか？';
+  showConfirm('マスターから読み直し', message, async () => {
+    try {
+      await fetchJournalsFromMaster();
+      toast('マスターから読み直しました');
+    } catch (e) {
+      toast('読み直しに失敗しました: ' + e.message, true);
+    }
+  });
+});
 
 document.getElementById('add-journal-fab').addEventListener('click', () => {
-  if (!canWrite(journalsFresh)) return;
   showConfirm('日記の追加', '新しい日記を追加しますか？', () => {
     const today = new Date().toISOString().slice(0, 10);
     journals.unshift({ date: today, title: '', body: '', id: -1 });
@@ -411,7 +471,8 @@ async function openSyncModal() {
   syncRunBtn.disabled = true;
   try {
     const result = await Api.checkUnprocessedFiles();
-    syncModalMessage.textContent = result.details;
+    // 日記はHTML上で管理するため、同期の案内は単語のみ表示する
+    syncModalMessage.textContent = String(result.details || '').replace(/Journal:\s*[^,]*,\s*/, '');
     syncRunBtn.disabled = !result.hasFiles;
   } catch (e) {
     syncModalMessage.textContent = '確認に失敗しました（前回取得した内容で続けられます）: ' + e.message;
@@ -431,7 +492,6 @@ syncRunBtn.addEventListener('click', async () => {
     const result = await Api.performSync();
     syncModalMessage.textContent = result.message || '同期が完了しました';
     toast(result.message || '同期が完了しました');
-    await loadJournals();
     await loadVocab();
     setTimeout(() => syncModal.classList.remove('active'), 800);
   } catch (e) {
@@ -457,13 +517,7 @@ function autoGrowTextarea(el) {
 }
 
 /* ---------------- Init ---------------- */
-// 通信を待たずに、前回取得した内容をまず表示する（この間は閲覧のみ）
-const cachedJournals = loadCache(CACHE_KEY_JOURNALS);
-if (cachedJournals) {
-  journals = cachedJournals.data;
-  journalsCachedAt = cachedJournals.savedAt;
-  renderJournals();
-}
+// 単語帳は通信を待たずに前回取得した内容をまず表示する（この間は閲覧のみ）
 const cachedVocab = loadCache(CACHE_KEY_VOCAB);
 if (cachedVocab) {
   vocabList = cachedVocab.data;
@@ -472,11 +526,8 @@ if (cachedVocab) {
 }
 updateStaleBanner();
 
-loadJournals();
+initJournals();
 loadVocab();
-
-// 起動のたびに「同期しますか？」を確認する（いいえ → 前回取得分のまま利用）
-openSyncModal();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

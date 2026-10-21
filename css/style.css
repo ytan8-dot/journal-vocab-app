@@ -343,3 +343,33 @@ header.app-header h1 {
 .stale-banner.active {
   display: block;
 }
+
+/* ---------- Journal toolbar (書き出し / 読み直し) ---------- */
+.journal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dirty-note {
+  flex: 1;
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+#export-journal-btn {
+  position: relative;
+}
+
+#export-journal-btn.dirty::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  border: 2px solid var(--bg-base);
+}
