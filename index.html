@@ -17,8 +17,10 @@
   <div id="app">
     <header class="app-header">
       <h1>Executive Journal</h1>
-      <button id="sync-btn" class="icon-btn" title="新着ファイル同期">⟳</button>
+      <button id="sync-btn" class="icon-btn" title="単語の同期">⟳</button>
     </header>
+
+    <div id="stale-banner" class="stale-banner"></div>
 
     <div class="tabs">
       <button class="tab-btn active" data-view="journal-view">日記</button>
@@ -28,6 +30,11 @@
 
     <!-- 日記一覧 -->
     <section id="journal-view" class="view active">
+      <div class="journal-toolbar">
+        <span id="journal-dirty-note" class="dirty-note"></span>
+        <button id="reload-journal-btn" class="btn btn-ghost">読み直し</button>
+        <button id="export-journal-btn" class="btn btn-primary">書き出し</button>
+      </div>
       <div id="journal-list"></div>
       <button id="add-journal-fab" class="fab" title="新規日記を追加">+</button>
     </section>
@@ -47,11 +54,11 @@
   <!-- 同期確認モーダル -->
   <div id="sync-modal" class="modal-overlay">
     <div class="modal">
-      <h2>新着ファイル同期</h2>
+      <h2>単語を同期しますか？</h2>
       <p id="sync-modal-message">確認中...</p>
       <div class="modal-actions">
-        <button id="sync-cancel-btn" class="btn btn-ghost">閉じる</button>
-        <button id="sync-run-btn" class="btn btn-primary">同期を実行</button>
+        <button id="sync-cancel-btn" class="btn btn-ghost">いいえ</button>
+        <button id="sync-run-btn" class="btn btn-primary">はい（同期する）</button>
       </div>
     </div>
   </div>

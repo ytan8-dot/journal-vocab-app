@@ -326,3 +326,50 @@ header.app-header h1 {
   color: var(--text-sub);
   padding: 40px 16px;
 }
+
+/* ---------- Stale (cached) banner ---------- */
+.stale-banner {
+  display: none;
+  margin: 4px 16px 0;
+  padding: 8px 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.stale-banner.active {
+  display: block;
+}
+
+/* ---------- Journal toolbar (書き出し / 読み直し) ---------- */
+.journal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dirty-note {
+  flex: 1;
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+#export-journal-btn {
+  position: relative;
+}
+
+#export-journal-btn.dirty::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  border: 2px solid var(--bg-base);
+}
