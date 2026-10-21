@@ -20,6 +20,8 @@
       <button id="sync-btn" class="icon-btn" title="新着ファイル同期">⟳</button>
     </header>
 
+    <div id="stale-banner" class="stale-banner"></div>
+
     <div class="tabs">
       <button class="tab-btn active" data-view="journal-view">日記</button>
       <button class="tab-btn" data-view="vocab-todo-view">英単語<br />（未完了）</button>
@@ -47,11 +49,11 @@
   <!-- 同期確認モーダル -->
   <div id="sync-modal" class="modal-overlay">
     <div class="modal">
-      <h2>新着ファイル同期</h2>
+      <h2>同期しますか？</h2>
       <p id="sync-modal-message">確認中...</p>
       <div class="modal-actions">
-        <button id="sync-cancel-btn" class="btn btn-ghost">閉じる</button>
-        <button id="sync-run-btn" class="btn btn-primary">同期を実行</button>
+        <button id="sync-cancel-btn" class="btn btn-ghost">いいえ</button>
+        <button id="sync-run-btn" class="btn btn-primary">はい（同期する）</button>
       </div>
     </div>
   </div>

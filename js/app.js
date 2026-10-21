@@ -2,6 +2,15 @@ let journals = [];
 let vocabList = [];
 let dragFromIndex = null;
 
+// 最新データを取得できたか。false のときは前回取得した内容（キャッシュ）を表示中で、閲覧のみ。
+let journalsFresh = false;
+let vocabFresh = false;
+let journalsCachedAt = null;
+let vocabCachedAt = null;
+
+const CACHE_KEY_JOURNALS = 'journalAppCache.journals';
+const CACHE_KEY_VOCAB = 'journalAppCache.vocab';
+
 const journalListEl = document.getElementById('journal-list');
 const vocabTodoListEl = document.getElementById('vocab-todo-list');
 const vocabDoneListEl = document.getElementById('vocab-done-list');
@@ -38,6 +47,45 @@ function showConfirm(title, message, onConfirm) {
   cancelBtn.addEventListener('click', onCancel);
 }
 
+/* ---------------- 前回取得分のキャッシュ ---------------- */
+function saveCache(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data }));
+  } catch (e) { /* 容量超過・無効化時は無視（キャッシュなしで動作） */ }
+}
+
+function loadCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function formatDateTime(ms) {
+  return new Date(ms).toLocaleString('ja-JP', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function updateStaleBanner() {
+  const banner = document.getElementById('stale-banner');
+  const notes = [];
+  if (!journalsFresh && journalsCachedAt) notes.push(`日記: ${formatDateTime(journalsCachedAt)}`);
+  if (!vocabFresh && vocabCachedAt) notes.push(`英単語: ${formatDateTime(vocabCachedAt)}`);
+  banner.textContent = notes.length
+    ? `前回取得した内容を表示中（閲覧のみ）／${notes.join('・')}`
+    : '';
+  banner.classList.toggle('active', notes.length > 0);
+}
+
+// 古い内容を表示している間は、保存・削除などの書き込みを止める。
+// （古い一覧で上書きして、スプレッドシート側の新しいデータを消さないため）
+function canWrite(fresh) {
+  if (fresh) return true;
+  toast('前回取得した内容を表示中のため、編集できません（閲覧のみ）', true);
+  return false;
+}
+
 /* ---------------- Tabs ---------------- */
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -52,10 +100,22 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
 async function loadJournals() {
   try {
     journals = await Api.getJournals();
+    journalsFresh = true;
+    saveCache(CACHE_KEY_JOURNALS, journals);
     renderJournals();
   } catch (e) {
-    toast('日記の取得に失敗しました: ' + e.message, true);
+    const cached = loadCache(CACHE_KEY_JOURNALS);
+    if (cached) {
+      journals = cached.data;
+      journalsCachedAt = cached.savedAt;
+      journalsFresh = false;
+      renderJournals();
+      toast('日記の取得に失敗したため、前回の内容を表示します', true);
+    } else {
+      toast('日記の取得に失敗しました: ' + e.message, true);
+    }
   }
+  updateStaleBanner();
 }
 
 function renderJournals() {
@@ -98,6 +158,7 @@ function renderJournals() {
 
     card.querySelector('.save-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
+      if (!canWrite(journalsFresh)) return;
       const date = card.querySelector('.edit-date').value.trim() || '日付なし';
       const title = card.querySelector('.edit-title').value.trim() || 'タイトルなし';
       const body = card.querySelector('.edit-body').value;
@@ -107,6 +168,7 @@ function renderJournals() {
 
     card.querySelector('.delete-btn').addEventListener('click', (e) => {
       e.stopPropagation();
+      if (!canWrite(journalsFresh)) return;
       showConfirm('日記の削除', `「${j.title}」を削除しますか？`, async () => {
         journals.splice(index, 1);
         await persistJournals('削除しました');
@@ -126,6 +188,7 @@ function renderJournals() {
       e.preventDefault();
       const toIndex = index;
       if (dragFromIndex === null || dragFromIndex === toIndex) return;
+      if (!canWrite(journalsFresh)) return;
       const [moved] = journals.splice(dragFromIndex, 1);
       journals.splice(toIndex, 0, moved);
       await persistJournals();
@@ -146,6 +209,7 @@ async function persistJournals(successMessage) {
 }
 
 document.getElementById('add-journal-fab').addEventListener('click', () => {
+  if (!canWrite(journalsFresh)) return;
   showConfirm('日記の追加', '新しい日記を追加しますか？', () => {
     const today = new Date().toISOString().slice(0, 10);
     journals.unshift({ date: today, title: '', body: '', id: -1 });
@@ -163,10 +227,22 @@ document.getElementById('add-journal-fab').addEventListener('click', () => {
 async function loadVocab() {
   try {
     vocabList = await Api.getVocabList();
+    vocabFresh = true;
+    saveCache(CACHE_KEY_VOCAB, vocabList);
     renderVocab();
   } catch (e) {
-    toast('単語帳の取得に失敗しました: ' + e.message, true);
+    const cached = loadCache(CACHE_KEY_VOCAB);
+    if (cached) {
+      vocabList = cached.data;
+      vocabCachedAt = cached.savedAt;
+      vocabFresh = false;
+      renderVocab();
+      toast('単語帳の取得に失敗したため、前回の内容を表示します', true);
+    } else {
+      toast('単語帳の取得に失敗しました: ' + e.message, true);
+    }
   }
+  updateStaleBanner();
 }
 
 function renderVocab() {
@@ -222,6 +298,10 @@ function buildVocabItem(v) {
 
   checkbox.addEventListener('click', (e) => e.stopPropagation());
   checkbox.addEventListener('change', async () => {
+    if (!canWrite(vocabFresh)) {
+      checkbox.checked = !checkbox.checked;
+      return;
+    }
     const newStatus = checkbox.checked ? '完了' : '未完了';
     try {
       await Api.updateVocabStatus(v.rowIndex, newStatus);
@@ -236,6 +316,7 @@ function buildVocabItem(v) {
 
   saveBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
+    if (!canWrite(vocabFresh)) return;
     const newEnglish = englishInput.value.trim();
     try {
       await Api.updateVocabEntry(v.rowIndex, v.japanese, newEnglish);
@@ -249,6 +330,7 @@ function buildVocabItem(v) {
 
   deleteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (!canWrite(vocabFresh)) return;
     showConfirm('単語の削除', `「${v.japanese}」を削除しますか？`, async () => {
       try {
         await Api.deleteVocabEntry(v.rowIndex);
@@ -265,6 +347,7 @@ function buildVocabItem(v) {
 }
 
 document.getElementById('add-vocab-fab').addEventListener('click', () => {
+  if (!canWrite(vocabFresh)) return;
   showConfirm('単語の追加', '新しい単語を追加しますか？', () => {
     addNewVocabCard();
   });
@@ -322,7 +405,7 @@ const syncModal = document.getElementById('sync-modal');
 const syncModalMessage = document.getElementById('sync-modal-message');
 const syncRunBtn = document.getElementById('sync-run-btn');
 
-document.getElementById('sync-btn').addEventListener('click', async () => {
+async function openSyncModal() {
   syncModal.classList.add('active');
   syncModalMessage.textContent = '確認中...';
   syncRunBtn.disabled = true;
@@ -331,9 +414,11 @@ document.getElementById('sync-btn').addEventListener('click', async () => {
     syncModalMessage.textContent = result.details;
     syncRunBtn.disabled = !result.hasFiles;
   } catch (e) {
-    syncModalMessage.textContent = '確認に失敗しました: ' + e.message;
+    syncModalMessage.textContent = '確認に失敗しました（前回取得した内容で続けられます）: ' + e.message;
   }
-});
+}
+
+document.getElementById('sync-btn').addEventListener('click', openSyncModal);
 
 document.getElementById('sync-cancel-btn').addEventListener('click', () => {
   syncModal.classList.remove('active');
@@ -372,8 +457,26 @@ function autoGrowTextarea(el) {
 }
 
 /* ---------------- Init ---------------- */
+// 通信を待たずに、前回取得した内容をまず表示する（この間は閲覧のみ）
+const cachedJournals = loadCache(CACHE_KEY_JOURNALS);
+if (cachedJournals) {
+  journals = cachedJournals.data;
+  journalsCachedAt = cachedJournals.savedAt;
+  renderJournals();
+}
+const cachedVocab = loadCache(CACHE_KEY_VOCAB);
+if (cachedVocab) {
+  vocabList = cachedVocab.data;
+  vocabCachedAt = cachedVocab.savedAt;
+  renderVocab();
+}
+updateStaleBanner();
+
 loadJournals();
 loadVocab();
+
+// 起動のたびに「同期しますか？」を確認する（いいえ → 前回取得分のまま利用）
+openSyncModal();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

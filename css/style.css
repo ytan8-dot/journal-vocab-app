@@ -326,3 +326,20 @@ header.app-header h1 {
   color: var(--text-sub);
   padding: 40px 16px;
 }
+
+/* ---------- Stale (cached) banner ---------- */
+.stale-banner {
+  display: none;
+  margin: 4px 16px 0;
+  padding: 8px 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.stale-banner.active {
+  display: block;
+}
